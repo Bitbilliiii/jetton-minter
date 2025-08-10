@@ -95,85 +95,6 @@ pre{white-space:pre-wrap;color:var(--muted);font-size:13px}
 
   <footer>Demo front-end. Use Testnet wallets while testing.</footer>
 </div>
-
-<script src="https://unpkg.com/@tonconnect/sdk@0.6.4/dist/tonconnect.umd.js"></script>
-<script>
-(async () => {
-  const connectBtn = document.getElementById('connectBtn');
-  const walletInfo = document.getElementById('walletInfo');
-  const tokenName = document.getElementById('tokenName');
-  const tokenSymbol = document.getElementById('tokenSymbol');
-  const decimals = document.getElementById('decimals');
-  const supply = document.getElementById('supply');
-  const logoUrl = document.getElementById('logoUrl');
-  const stateInitInput = document.getElementById('stateInit');
-  const previewBtn = document.getElementById('previewBtn');
-  const deployBtn = document.getElementById('deployBtn');
-  const pName = document.getElementById('pName');
-  const pSymbol = document.getElementById('pSymbol');
-  const pSupply = document.getElementById('pSupply');
-  const pDecimals = document.getElementById('pDecimals');
-  const logoPreview = document.getElementById('logoPreview');
-  const log = document.getElementById('log');
-
-  let tonConnect = null;
-  let account = null;
-  function appendLog(s) { log.textContent = (new Date()).toLocaleTimeString() + ' — ' + s + '\\n' + log.textContent; }
-
-  try {
-    tonConnect = new window.TonConnect.TonConnect({ manifestUrl: window.location.origin + '/tonconnect-manifest.json' });
-    await tonConnect.restoreConnection();
-    if (tonConnect.connected) { account = tonConnect.account; onConnected(); }
-  } catch (e) { appendLog('TonConnect init error: ' + e?.message || e); }
-
-  connectBtn.onclick = async () => {
-    if (!tonConnect) { appendLog('TonConnect not available'); return; }
-    try {
-      await tonConnect.connect();
-      account = tonConnect.account;
-      onConnected();
-    } catch (err) { appendLog('Connect canceled: ' + (err?.message || err)); }
-  };
-
-  function onConnected() {
-    const addr = account?.address || (tonConnect?.account?.address) || 'unknown';
-    walletInfo.textContent = addr + ' (connected)';
-    connectBtn.textContent = 'Connected';
-    appendLog('Connected: ' + addr);
-  }
-
-  previewBtn.onclick = () => {
-    pName.textContent = tokenName.value || 'Unnamed';
-    pSymbol.textContent = tokenSymbol.value ? `(${tokenSymbol.value})` : '';
-    pSupply.textContent = 'Supply: ' + (supply.value || '0');
-    pDecimals.textContent = 'Decimals: ' + (decimals.value || '0');
-    if (logoUrl.value) logoPreview.innerHTML = '<img src="'+logoUrl.value+'" style="max-width:100%;max-height:100%;border-radius:6px" />';
-    appendLog('Preview updated');
-  };
-
-  deployBtn.onclick = async () => {
-    if (!tonConnect || !tonConnect.connected) { appendLog('Connect wallet first'); return; }
-    const si = stateInitInput.value.trim();
-    if (!si) { appendLog('Paste stateInit base64 first'); return; }
-
-    const msg = {
-      validUntil: Date.now() + 1000 * 60 * 10,
-      messages: [{ amount: '50000000', stateInit: si }]
-    };
-    appendLog('Sending deploy request to wallet...');
-    try {
-      const res = await tonConnect.sendTransaction(msg);
-      appendLog('Wallet result: ' + JSON.stringify(res));
-      document.getElementById('statusBox').style.display = 'block';
-      document.getElementById('statusBox').textContent = 'Transaction submitted. Check wallet.';
-    } catch (e) {
-      appendLog('Tx failed/canceled: ' + (e?.message || e));
-    }
-  };
-})();
-</script>
-</body>
-</html>
 <!-- TonConnect SDK (UMD) -->
 <script src="https://unpkg.com/@tonconnect/sdk@0.6.4/dist/tonconnect.umd.js"></script>
 <script>
@@ -230,3 +151,6 @@ pre{white-space:pre-wrap;color:var(--muted);font-size:13px}
 
 })();
 </script>
+
+</body>
+</html>
