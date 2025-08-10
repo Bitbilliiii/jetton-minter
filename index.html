@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Jetton Minter — Demo</title>
+<style>
+:root{--bg:#000;--fg:#fff;--muted:#bdbdbd}
+body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--fg)}
+.container{max-width:980px;margin:28px auto;padding:20px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+header h1{font-size:20px;margin:0}
+.btn{background:#fff;color:#000;padding:10px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
+.card{background:linear-gradient(180deg,#0b0b0b,#070707);border:1px solid #222;padding:18px;border-radius:12px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+input[type="text"],input[type="number"],select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #222;background:#070707;color:var(--fg);outline:none}
+.row{display:flex;gap:10px}
+.small{font-size:12px;color:var(--muted)}
+.logo-preview{width:100%;height:120px;border:1px dashed #222;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.deploy-wrap{display:flex;flex-direction:column;gap:8px}
+.status{padding:10px;border-radius:8px;background:#07150b;color:#bff7c1;font-weight:600}
+footer{margin-top:18px;font-size:12px;color:var(--muted)}
+pre{white-space:pre-wrap;color:var(--muted);font-size:13px}
+@media(max-width:900px){.grid{grid-template-columns:1fr;}.card{padding:12px}}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Jetton Minter — Demo (Testnet)</h1>
+    <div>
+      <button id="connectBtn" class="btn">Connect Wallet</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2 style="margin:0 0 8px 0">Create Jetton (Demo)</h2>
+        <div class="small">Enter token info. For now you must paste a compiled stateInit (base64) to Deploy.</div>
+        <hr style="margin:12px 0;border:none;border-top:1px solid #151515" />
+
+        <label>Token Name</label>
+        <input id="tokenName" type="text" placeholder="Example Token" />
+
+        <label style="margin-top:10px">Token Symbol</label>
+        <input id="tokenSymbol" type="text" placeholder="TOM" maxlength="8" />
+
+        <label style="margin-top:10px">Decimals</label>
+        <input id="decimals" type="number" min="0" max="9" value="9" />
+
+        <label style="margin-top:10px">Initial Supply</label>
+        <input id="supply" type="text" placeholder="1000000000" />
+
+        <label style="margin-top:10px">Logo URL (optional)</label>
+        <input id="logoUrl" type="text" placeholder="https://..." />
+
+        <label style="margin-top:10px">StateInit (base64) — compiled contract</label>
+        <textarea id="stateInit" rows="3" placeholder="PASTE base64 stateInit here"></textarea>
+
+        <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+          <button id="previewBtn" class="btn">Preview</button>
+          <button id="deployBtn" class="btn">Deploy (sends tx to wallet)</button>
+        </div>
+
+        <div class="small" style="margin-top:8px;color:var(--muted)">
+          To actually deploy: paste stateInit base64 produced by compiling the jetton-minter contract (I will show how).
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="card">
+        <h3 style="margin:0 0 8px 0">Preview</h3>
+        <div class="logo-preview" id="logoPreview">Logo preview</div>
+        <div style="margin-top:10px">
+          <div><strong id="pName">—</strong> <span class="small" id="pSymbol">—</span></div>
+          <div class="small" id="pSupply">Supply: —</div>
+          <div class="small" id="pDecimals">Decimals: —</div>
+        </div>
+      </div>
+
+      <div class="card deploy-wrap">
+        <div class="small">Wallet</div>
+        <div id="walletInfo" class="small">Not connected</div>
+        <div id="statusBox" style="display:none" class="status">Ready</div>
+        <div style="margin-top:8px">
+          <div class="small">Log</div>
+          <pre id="log">No actions yet.</pre>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer>Demo front-end. Use Testnet wallets while testing.</footer>
+</div>
+
+<script src="https://unpkg.com/@tonconnect/sdk@0.6.4/dist/tonconnect.umd.js"></script>
+<script>
+(async () => {
+  const connectBtn = document.getElementById('connectBtn');
+  const walletInfo = document.getElementById('walletInfo');
+  const tokenName = document.getElementById('tokenName');
+  const tokenSymbol = document.getElementById('tokenSymbol');
+  const decimals = document.getElementById('decimals');
+  const supply = document.getElementById('supply');
+  const logoUrl = document.getElementById('logoUrl');
+  const stateInitInput = document.getElementById('stateInit');
+  const previewBtn = document.getElementById('previewBtn');
+  const deployBtn = document.getElementById('deployBtn');
+  const pName = document.getElementById('pName');
+  const pSymbol = document.getElementById('pSymbol');
+  const pSupply = document.getElementById('pSupply');
+  const pDecimals = document.getElementById('pDecimals');
+  const logoPreview = document.getElementById('logoPreview');
+  const log = document.getElementById('log');
+
+  let tonConnect = null;
+  let account = null;
+  function appendLog(s) { log.textContent = (new Date()).toLocaleTimeString() + ' — ' + s + '\\n' + log.textContent; }
+
+  try {
+    tonConnect = new window.TonConnect.TonConnect({ manifestUrl: window.location.origin + '/tonconnect-manifest.json' });
+    await tonConnect.restoreConnection();
+    if (tonConnect.connected) { account = tonConnect.account; onConnected(); }
+  } catch (e) { appendLog('TonConnect init error: ' + e?.message || e); }
+
+  connectBtn.onclick = async () => {
+    if (!tonConnect) { appendLog('TonConnect not available'); return; }
+    try {
+      await tonConnect.connect();
+      account = tonConnect.account;
+      onConnected();
+    } catch (err) { appendLog('Connect canceled: ' + (err?.message || err)); }
+  };
+
+  function onConnected() {
+    const addr = account?.address || (tonConnect?.account?.address) || 'unknown';
+    walletInfo.textContent = addr + ' (connected)';
+    connectBtn.textContent = 'Connected';
+    appendLog('Connected: ' + addr);
+  }
+
+  previewBtn.onclick = () => {
+    pName.textContent = tokenName.value || 'Unnamed';
+    pSymbol.textContent = tokenSymbol.value ? `(${tokenSymbol.value})` : '';
+    pSupply.textContent = 'Supply: ' + (supply.value || '0');
+    pDecimals.textContent = 'Decimals: ' + (decimals.value || '0');
+    if (logoUrl.value) logoPreview.innerHTML = '<img src="'+logoUrl.value+'" style="max-width:100%;max-height:100%;border-radius:6px" />';
+    appendLog('Preview updated');
+  };
+
+  deployBtn.onclick = async () => {
+    if (!tonConnect || !tonConnect.connected) { appendLog('Connect wallet first'); return; }
+    const si = stateInitInput.value.trim();
+    if (!si) { appendLog('Paste stateInit base64 first'); return; }
+
+    const msg = {
+      validUntil: Date.now() + 1000 * 60 * 10,
+      messages: [{ amount: '50000000', stateInit: si }]
+    };
+    appendLog('Sending deploy request to wallet...');
+    try {
+      const res = await tonConnect.sendTransaction(msg);
+      appendLog('Wallet result: ' + JSON.stringify(res));
+      document.getElementById('statusBox').style.display = 'block';
+      document.getElementById('statusBox').textContent = 'Transaction submitted. Check wallet.';
+    } catch (e) {
+      appendLog('Tx failed/canceled: ' + (e?.message || e));
+    }
+  };
+})();
+</script>
+</body>
+</html>
