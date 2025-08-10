@@ -174,3 +174,59 @@ pre{white-space:pre-wrap;color:var(--muted);font-size:13px}
 </script>
 </body>
 </html>
+<!-- TonConnect SDK (UMD) -->
+<script src="https://unpkg.com/@tonconnect/sdk@0.6.4/dist/tonconnect.umd.js"></script>
+<script>
+(async () => {
+  const connectBtn = document.getElementById('connectBtn');
+  const walletInfo = document.getElementById('walletInfo');
+  const log = document.getElementById('log');
+
+  function appendLog(s){ log.textContent = (new Date()).toLocaleTimeString() + ' — ' + s + '\\n' + log.textContent; }
+
+  // instantiate TonConnect and point to manifest we added
+  const TONConnect = window.TonConnect || window.tonconnect?.TonConnect || window.TonConnectSDK || null;
+  if (!TONConnect) { appendLog('TonConnect SDK not loaded'); return; }
+
+  const tonConnect = new TonConnect.TonConnect({
+    manifestUrl: location.origin + '/tonconnect-manifest.json'
+  });
+
+  // restore connection if previously connected
+  try {
+    await tonConnect.restoreConnection();
+    if (tonConnect.connected) {
+      walletInfo.textContent = (tonConnect.account && tonConnect.account.address) + ' (connected)';
+      connectBtn.textContent = 'Connected';
+      appendLog('Restored connection: ' + tonConnect.account.address);
+    }
+  } catch(e){ /* ignore */ }
+
+  connectBtn.onclick = async () => {
+    try {
+      await tonConnect.connect();
+      walletInfo.textContent = (tonConnect.account && tonConnect.account.address) + ' (connected)';
+      connectBtn.textContent = 'Connected';
+      appendLog('Connected: ' + tonConnect.account.address);
+    } catch (err) {
+      appendLog('Connect canceled / error: ' + (err?.message || err));
+    }
+  };
+
+  // helper for sending a deploy transaction (we will use this later)
+  window.sendDeployTx = async function(stateInitBase64, amountNano) {
+    if (!tonConnect.connected) { appendLog('Please connect wallet first'); throw 'not connected'; }
+    const msg = {
+      validUntil: Date.now() + 1000 * 60 * 10,
+      messages: [
+        { amount: String(amountNano || '50000000'), stateInit: stateInitBase64 }
+      ]
+    };
+    appendLog('Opening wallet to sign transaction...');
+    const res = await tonConnect.sendTransaction(msg);
+    appendLog('Wallet response: ' + JSON.stringify(res));
+    return res;
+  };
+
+})();
+</script>
