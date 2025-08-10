@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Jetton Minter — Demo</title>
+<title>Jetton Minter — Wallet Connect (TonConnect)</title>
 <style>
 :root{--bg:#000;--fg:#fff;--muted:#bdbdbd}
 body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--fg)}
@@ -11,146 +11,221 @@ body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 header h1{font-size:20px;margin:0}
 .btn{background:#fff;color:#000;padding:10px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
-.card{background:linear-gradient(180deg,#0b0b0b,#070707);border:1px solid #222;padding:18px;border-radius:12px;margin-bottom:14px}
-.grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-input[type="text"],input[type="number"],select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #222;background:#070707;color:var(--fg);outline:none}
-.row{display:flex;gap:10px}
 .small{font-size:12px;color:var(--muted)}
-.logo-preview{width:100%;height:120px;border:1px dashed #222;border-radius:8px;display:flex;align-items:center;justify-content:center}
-.deploy-wrap{display:flex;flex-direction:column;gap:8px}
-.status{padding:10px;border-radius:8px;background:#07150b;color:#bff7c1;font-weight:600}
-footer{margin-top:18px;font-size:12px;color:var(--muted)}
+.card{background:linear-gradient(180deg,#0b0b0b,#070707);border:1px solid #222;padding:18px;border-radius:12px;margin-bottom:14px}
+.row{display:flex;gap:10px;align-items:center}
+.logo-preview{width:100px;height:100px;border:1px dashed #222;border-radius:8px;display:flex;align-items:center;justify-content:center}
 pre{white-space:pre-wrap;color:var(--muted);font-size:13px}
-@media(max-width:900px){.grid{grid-template-columns:1fr;}.card{padding:12px}}
+footer{margin-top:18px;font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>Jetton Minter — Demo (Testnet)</h1>
-    <div>
+    <h1>Jetton Minter — Connect Wallet</h1>
+    <div class="row">
       <button id="connectBtn" class="btn">Connect Wallet</button>
+      <button id="disconnectBtn" class="btn" style="display:none">Disconnect</button>
     </div>
   </header>
 
-  <div class="grid">
-    <div>
-      <div class="card">
-        <h2 style="margin:0 0 8px 0">Create Jetton (Demo)</h2>
-        <div class="small">Enter token info. For now you must paste a compiled stateInit (base64) to Deploy.</div>
-        <hr style="margin:12px 0;border:none;border-top:1px solid #151515" />
-
-        <label>Token Name</label>
-        <input id="tokenName" type="text" placeholder="Example Token" />
-
-        <label style="margin-top:10px">Token Symbol</label>
-        <input id="tokenSymbol" type="text" placeholder="TOM" maxlength="8" />
-
-        <label style="margin-top:10px">Decimals</label>
-        <input id="decimals" type="number" min="0" max="9" value="9" />
-
-        <label style="margin-top:10px">Initial Supply</label>
-        <input id="supply" type="text" placeholder="1000000000" />
-
-        <label style="margin-top:10px">Logo URL (optional)</label>
-        <input id="logoUrl" type="text" placeholder="https://..." />
-
-        <label style="margin-top:10px">StateInit (base64) — compiled contract</label>
-        <textarea id="stateInit" rows="3" placeholder="PASTE base64 stateInit here"></textarea>
-
-        <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
-          <button id="previewBtn" class="btn">Preview</button>
-          <button id="deployBtn" class="btn">Deploy (sends tx to wallet)</button>
-        </div>
-
-        <div class="small" style="margin-top:8px;color:var(--muted)">
-          To actually deploy: paste stateInit base64 produced by compiling the jetton-minter contract (I will show how).
-        </div>
-      </div>
-    </div>
-
-    <aside>
-      <div class="card">
-        <h3 style="margin:0 0 8px 0">Preview</h3>
-        <div class="logo-preview" id="logoPreview">Logo preview</div>
-        <div style="margin-top:10px">
-          <div><strong id="pName">—</strong> <span class="small" id="pSymbol">—</span></div>
-          <div class="small" id="pSupply">Supply: —</div>
-          <div class="small" id="pDecimals">Decimals: —</div>
-        </div>
-      </div>
-
-      <div class="card deploy-wrap">
-        <div class="small">Wallet</div>
+  <div class="card">
+    <div style="display:flex;gap:18px">
+      <div style="flex:1">
+        <div class="small">Connected wallet</div>
         <div id="walletInfo" class="small">Not connected</div>
-        <div id="statusBox" style="display:none" class="status">Ready</div>
-        <div style="margin-top:8px">
+        <div style="margin-top:12px">
+          <div class="small">Quick deploy (paste compiled stateInit base64)</div>
+          <textarea id="stateInit" rows="4" style="width:100%;background:#070707;color:var(--fg);border:1px solid #222;border-radius:8px;padding:8px" placeholder="PASTE compiled stateInit (base64) here"></textarea>
+          <div style="margin-top:10px">
+            <input id="deployAmount" type="text" placeholder="Fee amount (nanotons) e.g. 50000000" style="padding:8px;border-radius:8px;border:1px solid #222;background:#070707;color:var(--fg);width:260px" />
+            <button id="deployBtn" class="btn">Send Deploy Tx</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:220px">
+        <div class="small">Preview Logo</div>
+        <div class="logo-preview" id="logoPreview">—</div>
+        <div style="margin-top:12px">
           <div class="small">Log</div>
           <pre id="log">No actions yet.</pre>
         </div>
       </div>
-    </aside>
+    </div>
   </div>
 
-  <footer>Demo front-end. Use Testnet wallets while testing.</footer>
+  <footer>
+    <div class="small">Make sure you added <code>tonconnect-manifest.json</code> at site root (see instructions).</div>
+  </footer>
 </div>
-<!-- TonConnect SDK (UMD) -->
+
+<!-- TonConnect UMD bundle (pinned version). Using UMD so you can paste directly to GitHub Pages -->
 <script src="https://unpkg.com/@tonconnect/sdk@0.6.4/dist/tonconnect.umd.js"></script>
+
 <script>
-(async () => {
+/*
+  Robust TonConnect front-end
+  - Uses UMD bundle loaded above
+  - Exposes connect / restore / disconnect
+  - sendDeployTx(stateInitBase64, amountNano) helper to open wallet and send deploy
+  NOTES:
+  - Place tonconnect-manifest.json at your site root (example provided below)
+  - Use Tonkeeper (Testnet) app to scan QR or open the universal link
+*/
+
+(async function(){
   const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
   const walletInfo = document.getElementById('walletInfo');
-  const log = document.getElementById('log');
+  const logEl = document.getElementById('log');
+  const stateInitEl = document.getElementById('stateInit');
+  const deployBtn = document.getElementById('deployBtn');
+  const deployAmountEl = document.getElementById('deployAmount');
+  const logoPreview = document.getElementById('logoPreview');
 
-  function appendLog(s){ log.textContent = (new Date()).toLocaleTimeString() + ' — ' + s + '\\n' + log.textContent; }
+  function appendLog(s){
+    logEl.textContent = new Date().toLocaleTimeString() + ' — ' + s + '\\n' + logEl.textContent;
+  }
 
-  // instantiate TonConnect and point to manifest we added
-  const TONConnect = window.TonConnect || window.tonconnect?.TonConnect || window.TonConnectSDK || null;
-  if (!TONConnect) { appendLog('TonConnect SDK not loaded'); return; }
+  // find TonConnect constructor in UMD
+  const TonConnectConstructor = window.TonConnect || window.tonconnect?.TonConnect || (window.tonconnect && window.tonconnect.TonConnect) || null;
+  if (!TonConnectConstructor) {
+    appendLog('ERROR: TonConnect SDK not found. Check script include.');
+    return;
+  }
 
-  const tonConnect = new TonConnect.TonConnect({
-    manifestUrl: location.origin + '/tonconnect-manifest.json'
+  // init with manifest
+  const manifestUrl = location.origin + '/tonconnect-manifest.json';
+  let tonConnect;
+  try {
+    tonConnect = new TonConnectConstructor({ manifestUrl });
+  } catch (e) {
+    appendLog('TonConnect init error: ' + (e?.message || e));
+    return;
+  }
+
+  // try restore prior session
+  try {
+    if (typeof tonConnect.restoreConnection === 'function') {
+      await tonConnect.restoreConnection();
+      if (tonConnect.connected) {
+        onConnected();
+        appendLog('Restored connection.');
+      } else {
+        appendLog('No previous connection to restore.');
+      }
+    } else {
+      appendLog('restoreConnection() not available on this SDK version; proceed manually.');
+    }
+  } catch (e) {
+    appendLog('restoreConnection error: ' + (e?.message || e));
+  }
+
+  // connect button
+  connectBtn.addEventListener('click', async () => {
+    try {
+      // TonConnect.connect() opens the wallet selection UI (or QR) and returns when user approves or cancels.
+      await tonConnect.connect();
+      if (tonConnect.connected) {
+        onConnected();
+        appendLog('Connected via TonConnect.');
+      } else {
+        appendLog('User canceled connect or connection not established.');
+      }
+    } catch (err) {
+      appendLog('Connect error: ' + (err?.message || err));
+    }
   });
 
-  // restore connection if previously connected
-  try {
-    await tonConnect.restoreConnection();
-    if (tonConnect.connected) {
-      walletInfo.textContent = (tonConnect.account && tonConnect.account.address) + ' (connected)';
-      connectBtn.textContent = 'Connected';
-      appendLog('Restored connection: ' + tonConnect.account.address);
-    }
-  } catch(e){ /* ignore */ }
-
-  connectBtn.onclick = async () => {
+  // disconnect button
+  disconnectBtn.addEventListener('click', async () => {
     try {
-      await tonConnect.connect();
-      walletInfo.textContent = (tonConnect.account && tonConnect.account.address) + ' (connected)';
-      connectBtn.textContent = 'Connected';
-      appendLog('Connected: ' + tonConnect.account.address);
-    } catch (err) {
-      appendLog('Connect canceled / error: ' + (err?.message || err));
+      if (typeof tonConnect.disconnect === 'function') {
+        await tonConnect.disconnect();
+      }
+      walletInfo.textContent = 'Not connected';
+      connectBtn.style.display = '';
+      disconnectBtn.style.display = 'none';
+      appendLog('Disconnected.');
+    } catch (e) {
+      appendLog('Disconnect error: ' + (e?.message || e));
     }
-  };
+  });
 
-  // helper for sending a deploy transaction (we will use this later)
-  window.sendDeployTx = async function(stateInitBase64, amountNano) {
-    if (!tonConnect.connected) { appendLog('Please connect wallet first'); throw 'not connected'; }
-    const msg = {
-      validUntil: Date.now() + 1000 * 60 * 10,
+  function onConnected(){
+    // many SDK versions store account on tonConnect.account or tonConnect.connectedAccount
+    const addr = (tonConnect.account && tonConnect.account.address) || (tonConnect.connected && tonConnect.connected.account && tonConnect.connected.account.address) || null;
+    walletInfo.textContent = addr ? addr + ' (connected)' : 'Connected (address unknown)';
+    connectBtn.style.display = 'none';
+    disconnectBtn.style.display = '';
+  }
+
+  // helper to send deploy transaction using stateInit
+  async function sendDeployTx(stateInitB64, amountNano) {
+    if (!tonConnect.connected) {
+      appendLog('Not connected — cannot send tx.');
+      throw new Error('not connected');
+    }
+    if (!stateInitB64) {
+      appendLog('Missing stateInit. Paste compiled base64 into textarea.');
+      throw new Error('missing stateInit');
+    }
+    const validUntil = Date.now() + 1000 * 60 * 10;
+    const message = {
+      validUntil,
       messages: [
-        { amount: String(amountNano || '50000000'), stateInit: stateInitBase64 }
+        {
+          amount: String(amountNano || '50000000'), // default 0.05 TON (nanotons)
+          stateInit: stateInitB64
+        }
       ]
     };
-    appendLog('Opening wallet to sign transaction...');
-    const res = await tonConnect.sendTransaction(msg);
-    appendLog('Wallet response: ' + JSON.stringify(res));
-    return res;
-  };
 
+    appendLog('Opening wallet to sign deploy transaction...');
+    try {
+      // use sendTransaction if available
+      if (typeof tonConnect.sendTransaction === 'function') {
+        const res = await tonConnect.sendTransaction(message);
+        appendLog('Transaction submitted (sendTransaction): ' + JSON.stringify(res));
+        return res;
+      }
+      // fallback to ui.sendTransaction if present
+      if (tonConnect.ui && typeof tonConnect.ui.sendTransaction === 'function') {
+        const res = await tonConnect.ui.sendTransaction(message);
+        appendLog('Transaction submitted (ui.sendTransaction): ' + JSON.stringify(res));
+        return res;
+      }
+
+      // Some SDK versions might expect a different API; print helpful error
+      appendLog('ERROR: sendTransaction API not found on TonConnect instance. SDK mismatch.');
+      throw new Error('sendTransaction not found');
+    } catch (err) {
+      appendLog('Transaction error / cancelled: ' + (err?.message || err));
+      throw err;
+    }
+  }
+
+  // deploy button action
+  deployBtn.addEventListener('click', async () => {
+    const stateInit = stateInitEl.value.trim();
+    const amountStr = (deployAmountEl.value || '').trim();
+    const amountNano = amountStr || '50000000';
+    try {
+      await sendDeployTx(stateInit, amountNano);
+      appendLog('Deploy request sent to wallet. Wait for block confirmation in block explorer.');
+    } catch (e) {
+      // errors have already been logged
+    }
+  });
+
+  // quick preview for logo if someone pastes metadata URL
+  stateInitEl.addEventListener('input', () => {
+    // no-op by default; you can implement base64 to parse metadata if you want
+  });
+
+  appendLog('TonConnect UI ready. Manifest: ' + manifestUrl);
 })();
 </script>
-
 </body>
 </html>
